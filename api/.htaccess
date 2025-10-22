@@ -1,0 +1,79 @@
+# API Security and Error Handling Configuration
+
+# Prevent directory listing
+Options -Indexes
+
+# Set default character encoding
+AddDefaultCharset UTF-8
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Content-Security-Policy "default-src 'self'"
+</IfModule>
+
+# CORS headers for API access
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Webhook-Signature"
+    Header always set Access-Control-Max-Age "600"
+</IfModule>
+
+# Handle preflight requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Custom error pages
+ErrorDocument 400 '{"success": false, "error": "Bad Request", "message": "The request is invalid."}'
+ErrorDocument 401 '{"success": false, "error": "Unauthorized", "message": "Authentication required."}'
+ErrorDocument 403 '{"success": false, "error": "Forbidden", "message": "Access to this resource is forbidden."}'
+ErrorDocument 404 '{"success": false, "error": "Not Found", "message": "The requested resource was not found."}'
+ErrorDocument 405 '{"success": false, "error": "Method Not Allowed", "message": "The request method is not allowed for this resource."}'
+ErrorDocument 429 '{"success": false, "error": "Too Many Requests", "message": "Rate limit exceeded. Please try again later."}'
+ErrorDocument 500 '{"success": false, "error": "Internal Server Error", "message": "An unexpected error occurred."}'
+ErrorDocument 502 '{"success": false, "error": "Bad Gateway", "message": "The server received an invalid response."}'
+ErrorDocument 503 '{"success": false, "error": "Service Unavailable", "message": "The service is temporarily unavailable."}'
+
+# PHP settings for API
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log ../logs/php_errors.log
+    php_value max_execution_time 30
+    php_value memory_limit 128M
+    php_value post_max_size 10M
+    php_value upload_max_filesize 10M
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log ../logs/php_errors.log
+    php_value max_execution_time 30
+    php_value memory_limit 128M
+    php_value post_max_size 10M
+    php_value upload_max_filesize 10M
+</IfModule>
+
+# Rate limiting (if mod_reqtimeout is available)
+<IfModule mod_reqtimeout.c>
+    RequestReadTimeout header=20-40,MinRate=500 body=10,MinRate=500
+</IfModule>
+
+# IP-based restrictions (optional - uncomment and modify as needed)
+# Require ip 192.168.1.0/24
+# Require ip 10.0.0.0/8
+
+# Block common attack patterns
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} UNION([^\s]|%20).*SELECT [NC,OR]
+    RewriteCond %{QUERY_STRING} javascript: [NC,OR]
+    RewriteCond %{QUERY_STRING} base64_encode [NC]
+    RewriteRule ^ - [F,L]
+</IfModule>
