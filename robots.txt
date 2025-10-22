@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /api/
+
+# Disallow sensitive directories
+Disallow: /database/
+Disallow: /logs/
+Disallow: /lib/
+Disallow: /*.log$
+Disallow: /config.php
+Disallow: /test_apis.php
+
+# Sitemap
+Sitemap: https://yourdomain.com/sitemap.xml
